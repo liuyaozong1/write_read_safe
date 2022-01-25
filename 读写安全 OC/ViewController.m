@@ -24,12 +24,28 @@
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [self gcdBarrierAction];
+}
+//读写锁 来实现
+-(void)lockAction {
     for (int i = 0; i < 10; i ++) {
         dispatch_async(self.queue, ^{
             [[[NSThread  alloc] initWithTarget:self selector:@selector(write) object:nil] start];
         });
         dispatch_async(self.queue, ^{
             [[[NSThread  alloc] initWithTarget:self selector:@selector(read) object:nil] start];
+        });
+    }
+}
+
+//GCD栅栏实现
+-(void)gcdBarrierAction {
+    for (int i = 0; i < 10; i ++) {
+        dispatch_async(self.queue, ^{
+            [[[NSThread  alloc] initWithTarget:self selector:@selector(write2) object:nil] start];
+        });
+        dispatch_async(self.queue, ^{
+            [[[NSThread  alloc] initWithTarget:self selector:@selector(read2) object:nil] start];
         });
     }
 }
@@ -48,6 +64,21 @@
     sleep(1);
     NSLog(@"read");
     pthread_rwlock_unlock(&_lock);
+}
+
+//写数据
+-(void)write2 {
+    dispatch_barrier_async(self.queue, ^{
+        sleep(1);
+        NSLog(@"write");
+    });
+}
+//读数据
+-(void)read2 {
+    dispatch_async(self.queue, ^{
+        sleep(1);
+        NSLog(@"read");
+    });
 }
 
 -(void)dealloc {
